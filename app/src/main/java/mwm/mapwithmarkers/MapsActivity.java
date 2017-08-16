@@ -4,6 +4,9 @@ import android.*;
 import android.Manifest;
 import android.content.Context;
 import android.content.pm.PackageManager;
+import android.location.Criteria;
+import android.location.Location;
+import android.location.LocationManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.support.v4.app.FragmentActivity;
@@ -31,6 +34,11 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     private Context context;
     private FusedLocationProviderClient mFusedLocationClient;
     private static final int LOCATION_PERMISSION_REQUEST_CODE = 1;
+    private GoogleMap mMap;
+
+    private GPSTracker gpsTracker;
+    private Location mLocation;
+    double latitude, longitude;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -39,6 +47,13 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
+
+//        gpsTracker = new GPSTracker();
+//        mLocation = gpsTracker.getLocation(getApplicationContext());
+//
+//        latitude = mLocation.getLatitude();
+//        longitude = mLocation.getLongitude();
+
         mapFragment.getMapAsync(this);
     }
 
@@ -56,11 +71,23 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     public void onMapReady(GoogleMap googleMap) {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
             googleMap.setMyLocationEnabled(true);
+
+            LocationManager locationManager = (LocationManager)
+                    getSystemService(Context.LOCATION_SERVICE);
+            Criteria criteria = new Criteria();
+
+            Location currentLocation = locationManager.getLastKnownLocation(locationManager.getBestProvider(criteria, false));
+
+            LatLng sydney = new LatLng(currentLocation.getLatitude(), currentLocation.getLongitude());
+
+            googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(sydney, 13));
+
         } else {
             PermissionUtils.requestPermission(this, LOCATION_PERMISSION_REQUEST_CODE, Manifest.permission.ACCESS_FINE_LOCATION, true);
         }
 
         updateMarkersData(googleMap);
+
     }
 
     private void updateMarkersData(final GoogleMap googleMap) {

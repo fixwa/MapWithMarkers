@@ -48,6 +48,8 @@
             </intent-filter>
         </activity>
         <activity android:name=".DisplayMessageActivity"></activity>
+
+        <service android:name=".GPSTracker"></service>
     </application>
 
 </manifest>

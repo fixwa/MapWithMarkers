@@ -16,7 +16,7 @@ import java.net.URL;
 
 public class RemoteFetch {
 
-    private static final String OPEN_WEATHER_MAP_API = "http://f845276f.ngrok.io/markers";
+    private static final String OPEN_WEATHER_MAP_API = "http://f61e84f9.ngrok.io/markers";
 
     public static JSONObject getJSON(String city) {
         try {
