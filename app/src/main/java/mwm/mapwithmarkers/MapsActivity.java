@@ -1,7 +1,16 @@
 package mwm.mapwithmarkers;
 
-import android.support.v4.app.FragmentActivity;
+import android.*;
+import android.Manifest;
+import android.content.Context;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.os.Handler;
+import android.support.v4.app.FragmentActivity;
+import android.support.v4.content.ContextCompat;
+import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
+import android.widget.Toast;
 
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.maps.CameraUpdateFactory;
@@ -11,10 +20,17 @@ import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
 
-public class MapsActivity extends FragmentActivity implements OnMapReadyCallback {
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
-    private GoogleMap mMap;
+import mwm.mapwithmarkers.request.RemoteFetch;
+
+public class MapsActivity extends AppCompatActivity implements OnMapReadyCallback {
+
+    private Context context;
     private FusedLocationProviderClient mFusedLocationClient;
+    private static final int LOCATION_PERMISSION_REQUEST_CODE = 1;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -38,11 +54,49 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
      */
     @Override
     public void onMapReady(GoogleMap googleMap) {
-        mMap = googleMap;
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+            googleMap.setMyLocationEnabled(true);
+        } else {
+            PermissionUtils.requestPermission(this, LOCATION_PERMISSION_REQUEST_CODE, Manifest.permission.ACCESS_FINE_LOCATION, true);
+        }
 
-        // Add a marker in Sydney and move the camera
-        LatLng sydney = new LatLng(-34, 151);
-        mMap.addMarker(new MarkerOptions().position(sydney).title("Marker in Sydney"));
-        mMap.moveCamera(CameraUpdateFactory.newLatLng(sydney));
+        updateMarkersData(googleMap);
+    }
+
+    private void updateMarkersData(final GoogleMap googleMap) {
+
+        final Handler handler = new Handler();
+        new Thread() {
+            public void run() {
+                final JSONObject json = RemoteFetch.getJSON("Cordoba, AR");
+                if (json == null) {
+                    handler.post(new Runnable() {
+                        public void run() {
+                            Toast.makeText(context, "No se encuentra", Toast.LENGTH_LONG).show();
+                        }
+                    });
+                } else {
+                    handler.post(new Runnable() {
+                        public void run() {
+                            // Iterate Json response and create Markers in the Google' map
+
+                            try {
+                                JSONArray markersData = json.getJSONArray("data");
+                                for (int i=0; i < markersData.length(); i++) {
+                                    JSONObject markerData = markersData.getJSONObject(i);
+                                    LatLng latLng = new LatLng(
+                                            Float.parseFloat(markerData.getString("latitude")),
+                                            Float.parseFloat(markerData.getString("longitude"))
+                                    );
+                                    googleMap.addMarker(new MarkerOptions().position(latLng).title(markerData.getString("title")));
+                                }
+                            } catch (JSONException e) {
+                                return;
+                            }
+                        }
+                    });
+                }
+            }
+        }.start();
     }
 }
